@@ -1,43 +1,51 @@
 pipeline {
-    agent any
+  agent any
 
-    stages {
+  stages {
 
-        stage('Checkout Code') {
-            steps {
-                echo 'Pulling code from Git repository'
-                checkout scm
-            }
-        }
-
-        stage('Build') {
-            steps {
-                echo 'Building website (static build)'
-                sh 'ls -l'
-            }
-        }
-
-        stage('Test Website Files') {
-            steps {
-                echo 'Running validation tests'
-                sh 'bash test.sh'
-            }
-        }
-
-        stage('Final Output') {
-            steps {
-                echo 'CI Pipeline executed successfully'
-                sh 'echo "Website pipeline completed successfully"'
-            }
-        }
+    stage ('Checkout') {
+      steps {
+        echo 'Fetching source code'
+        checkout scm
+      }
+    }
+    stage ('Code quality check!') {
+      steps {
+        echo 'Checking code quality'
+        bat '''
+        findstr GOOD quality.txt > nul
+        if errorlevel 1 (
+            echo Code Quality Failed
+            exit 1
+        ) else (
+            echo Code Quality Passed
+        ) 
+        '''  
+      }
+    }
+    stage ('Generate Report') {
+      steps {
+        echo 'Generating build report'
+        bat '''
+        mkdir reports
+        echo Build Successful > reports\\build-report.txt
+        '''
+      }
     }
 
-    post {
-        success {
-            echo '✅ PIPELINE SUCCESS'
-        }
-        failure {
-            echo '❌ PIPELINE FAILED'
-        }
-    }
+    stage ('Archive Artifacts') {
+      steps {
+        echo 'Archiving reports'
+        archiveArtifacts artifacts: 'reports/*.txt', fingerprint: true
+      }
+    }    
+  }
+  post {
+      success {
+        echo 'Pipeline completed successfully'
+      }
+      failure {
+        echo 'Pipeline failed- code blocked'
+      }
+  }
 }
